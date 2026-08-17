@@ -1,0 +1,113 @@
+CREATE TABLE IF NOT EXISTS attackers (
+    attacker_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(255) NOT NULL,
+    type ENUM('State', 'Criminal', 'Developer', 'Researcher', 'Other', 'Unknown', 'N/a') DEFAULT 'Unknown',
+    UNIQUE KEY idx_attacker_name (name)
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 2. TABELA PRINCIPAL DE INCIDENTES (INCIDENTS)
+-- ============================================================
+CREATE TABLE IF NOT EXISTS incidents (
+    incident_id INT AUTO_INCREMENT PRIMARY KEY,
+    incident_name VARCHAR(255) NOT NULL,
+    event_date DATE NULL,
+    year SMALLINT UNSIGNED NULL,
+    disclosure_type ENUM('Attack', 'Disclosure', 'Attack/Disclosure', 'Unknown') DEFAULT 'Unknown',
+    summary TEXT NULL,
+    article_urls TEXT NULL,
+    affected_code VARCHAR(255) NULL,
+    code_location_owner VARCHAR(255) NULL,
+    downstream_target VARCHAR(255) NULL,
+    is_proprietary BOOLEAN DEFAULT FALSE,
+    has_app_store BOOLEAN DEFAULT FALSE,
+    ease_breadth_access_score TINYINT UNSIGNED NULL COMMENT 'Escala de facilidade/amplitude de acesso',
+    depth_in_stack_score TINYINT UNSIGNED NULL COMMENT 'Escala de profundidade na pilha de tecnologia',
+    batch_number INT NULL,
+    attacker_id INT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (attacker_id) REFERENCES attackers(attacker_id) ON DELETE SET NULL
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 3. TABELAS DE DOMÍNIO (LOOKUP TABLES)
+-- ============================================================
+
+-- Base de Código / Camada Afetada (Codebase)
+CREATE TABLE IF NOT EXISTS codebase_types (
+    codebase_type_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+-- Vetores de Ataque (Attack Vector)
+CREATE TABLE IF NOT EXISTS attack_vectors (
+    attack_vector_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+-- Vetores de Distribuição (Distribution Vector)
+CREATE TABLE IF NOT EXISTS distribution_vectors (
+    distribution_vector_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+-- Potencial na Cadeia de Suprimentos (Supply Chain Potential)
+CREATE TABLE IF NOT EXISTS supply_chain_potentials (
+    potential_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+-- Tipos de Impacto (Impact)
+CREATE TABLE IF NOT EXISTS impact_types (
+    impact_type_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+) ENGINE=InnoDB;
+
+-- ============================================================
+-- 4. TABELAS DE RELACIONAMENTO (N:N)
+-- ============================================================
+
+-- Incidente <-> Codebase
+CREATE TABLE IF NOT EXISTS incident_codebases (
+    incident_id INT NOT NULL,
+    codebase_type_id INT NOT NULL,
+    PRIMARY KEY (incident_id, codebase_type_id),
+    FOREIGN KEY (incident_id) REFERENCES incidents(incident_id) ON DELETE CASCADE,
+    FOREIGN KEY (codebase_type_id) REFERENCES codebase_types(codebase_type_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Incidente <-> Vetor de Ataque
+CREATE TABLE IF NOT EXISTS incident_attack_vectors (
+    incident_id INT NOT NULL,
+    attack_vector_id INT NOT NULL,
+    PRIMARY KEY (incident_id, attack_vector_id),
+    FOREIGN KEY (incident_id) REFERENCES incidents(incident_id) ON DELETE CASCADE,
+    FOREIGN KEY (attack_vector_id) REFERENCES attack_vectors(attack_vector_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Incidente <-> Vetor de Distribuição
+CREATE TABLE IF NOT EXISTS incident_distribution_vectors (
+    incident_id INT NOT NULL,
+    distribution_vector_id INT NOT NULL,
+    PRIMARY KEY (incident_id, distribution_vector_id),
+    FOREIGN KEY (incident_id) REFERENCES incidents(incident_id) ON DELETE CASCADE,
+    FOREIGN KEY (distribution_vector_id) REFERENCES distribution_vectors(distribution_vector_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Incidente <-> Potencial na Cadeia de Suprimentos
+CREATE TABLE IF NOT EXISTS incident_supply_chain_potentials (
+    incident_id INT NOT NULL,
+    potential_id INT NOT NULL,
+    PRIMARY KEY (incident_id, potential_id),
+    FOREIGN KEY (incident_id) REFERENCES incidents(incident_id) ON DELETE CASCADE,
+    FOREIGN KEY (potential_id) REFERENCES supply_chain_potentials(potential_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
+
+-- Incidente <-> Impacto
+CREATE TABLE IF NOT EXISTS incident_impacts (
+    incident_id INT NOT NULL,
+    impact_type_id INT NOT NULL,
+    PRIMARY KEY (incident_id, impact_type_id),
+    FOREIGN KEY (incident_id) REFERENCES incidents(incident_id) ON DELETE CASCADE,
+    FOREIGN KEY (impact_type_id) REFERENCES impact_types(impact_type_id) ON DELETE CASCADE
+) ENGINE=InnoDB;
