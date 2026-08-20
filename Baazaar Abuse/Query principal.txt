@@ -1,0 +1,16 @@
+select
+	m.id,
+    m.first_seen_utc,
+    m.file_name,
+    ft.type_guess,
+    ft.mime_type,
+    r.name AS reporter,
+    s.signature_name AS signature,
+    c.clamav_name AS clamav_detection,
+    m.vtpercent
+FROM malware_samples m
+LEFT JOIN file_types ft on m.file_type_id = ft.id
+LEFT JOIN reporters r on m.reporter_id = r.id
+LEFT JOIN signatures s on m.signature_id = s.id
+LEFT JOIN clamav_signatures c ON m.clamav_id = c.id
+where m.file_type_id = 6;

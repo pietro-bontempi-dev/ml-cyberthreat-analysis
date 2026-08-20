@@ -1,0 +1,62 @@
+-- 1. Criação do Banco de Dados
+CREATE DATABASE bazaar_malware_db;
+USE bazaar_malware_db;
+
+-- 2. Tabela de Repórteres (Quem enviou a amostra)
+CREATE TABLE reporters (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- 3. Tabela de Tipos e MIME Types do Arquivo
+CREATE TABLE file_types (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    type_guess VARCHAR(50),
+    mime_type VARCHAR(100),
+    CONSTRAINT unique_file_type UNIQUE (type_guess, mime_type)
+);
+
+-- 4. Tabela de Famílias de Malware (Assinaturas / Tag principal)
+CREATE TABLE signatures (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    signature_name VARCHAR(100) NOT NULL UNIQUE
+);
+
+-- 5. Tabela de Detecções do ClamAV
+CREATE TABLE clamav_signatures (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    clamav_name VARCHAR(150) NOT NULL UNIQUE
+);
+
+-- 6. Tabela Principal (Amostras de Malware)
+CREATE TABLE malware_samples (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    first_seen_utc DATETIME NOT NULL,
+    sha256_hash VARCHAR(64) NOT NULL UNIQUE,
+    md5_hash VARCHAR(32),
+    sha1_hash VARCHAR(40),
+    file_name VARCHAR(255),
+    
+    -- Chaves Estrangeiras (Relacionamentos)
+    reporter_id INT,
+    file_type_id INT,
+    signature_id INT,
+    clamav_id INT,
+    
+    -- Métricas e Hashes de Análise Avançada
+    vtpercent DECIMAL(5, 2), -- Porcentagem do VirusTotal (ex: 75.50)
+    imphash VARCHAR(64),
+    ssdeep TEXT,
+    tlsh TEXT,
+
+    FOREIGN KEY (reporter_id) REFERENCES reporters(id) ON DELETE SET NULL,
+    FOREIGN KEY (file_type_id) REFERENCES file_types(id) ON DELETE SET NULL,
+    FOREIGN KEY (signature_id) REFERENCES signatures(id) ON DELETE SET NULL,
+    FOREIGN KEY (clamav_id) REFERENCES clamav_signatures(id) ON DELETE SET NULL
+);
+
+-- 7. Índices para Otimizar Consultas Futuras
+CREATE INDEX idx_first_seen ON malware_samples(first_seen_utc);
+CREATE INDEX idx_sha256 ON malware_samples(sha256_hash);
+CREATE INDEX idx_reporter ON malware_samples(reporter_id);
+CREATE INDEX idx_signature ON malware_samples(signature_id);
